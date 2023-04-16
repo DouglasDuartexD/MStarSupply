@@ -1,0 +1,76 @@
+﻿@model MStarSupply.Models.Movimentacoes
+
+@{
+ViewData["Title"] = "Editar Movimentação";
+}
+
+<div class="text-center">
+    <h1>Editar Movimentação</h1>
+</div>
+<hr />
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <form asp-action="Edit" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
+            <div class="form-group">
+            <label asp-for="Produto_id" class="control-label"></label>
+            <select asp-for="Produto_id" asp-items="@(new SelectList(ViewBag.Produtos, "Id", "Nome"))" class="form-control"></select>
+            <span asp-validation-for="Produto_id" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="DataHora" class="control-label"></label>
+            <input asp-for="DataHora" class="form-control" />
+            <span asp-validation-for="DataHora" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Quantidade" class="control-label"></label>
+            <input asp-for="Quantidade" class="form-control" />
+            <span asp-validation-for="Quantidade" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="TipoMovimentacao" class="control-label"></label>
+            <select asp-for="TipoMovimentacao" class="form-control">
+                <option value="true">Entrada</option>
+                <option value="false">Saída</option>
+            </select>
+            <span asp-validation-for="TipoMovimentacao" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Local" class="control-label"></label>
+            <input asp-for="Local" class="form-control" />
+            <span asp-validation-for="Local" class="text-danger"></span>
+        </div>
+
+        <div class="form-group text-center">
+            <button type="submit" class="btn btn-primary">Salvar</button>
+            <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+</div>
+@section Scripts {
+@{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+<script>
+    $(document).ready(function() {
+        // Popula o dropdown de produtos
+        var produtos = @Html.Raw(Json.Serialize(ViewBag.Produtos));
+        var produto_id = @Html.Raw(Json.Serialize(Model.Produto_id));
+        var dropdown = $("select[name='Produto_id']");
+        dropdown.empty();
+        dropdown.append('<option selected="true" disabled>Selecione o produto</option>');
+        dropdown.prop('selectedIndex', 0);
+        $.each(produtos, function(index, produto) {
+            if (produto.id == produto_id) {
+                dropdown.append($('<option></option>').attr('value', produto.id).attr('selected', 'selected').text(produto.nome));
+            } else {
+                dropdown.append($('<option></option>').attr('value', produto.id).text(produto.nome));
+            }
+        });
+    });
+</script>
+}

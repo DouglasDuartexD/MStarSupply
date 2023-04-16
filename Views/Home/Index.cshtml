@@ -1,0 +1,134 @@
+﻿@model IEnumerable<MStarSupply.Models.Movimentacoes>
+
+@{
+    ViewData["Title"] = "Gráficos";
+}
+
+
+<div style="text-align:center; margin-bottom: 50px;">
+    <h1>Entradas X Saidas</h1>
+    <div><canvas id="grafico_entrada_saida"></canvas></div>
+</div>
+<div style="text-align:center; margin-bottom: 50px;">
+    <h1>Entrada de produtos</h1>
+    <div><canvas id="grafico_entrada"></canvas></div>
+</div>
+<div style="text-align:center;">
+    <h1>Saida de produtos</h1>
+    <div><canvas id="grafico_saida"></canvas></div>
+</div>
+
+@section Scripts{
+    @{
+        var usedColors = new List<string>();
+        var allDates = Model.Select(x => x.DataHora.Date).Distinct().OrderBy(x => x).ToList();
+        var dateGroups = allDates.GroupBy(x => x.ToString("MM/yyyy"));
+        var entradas = new
+        {
+            labels = dateGroups.Select(g => g.Key),
+            datasets = Model.Select(x => x.Produto.Nome).Distinct().Select((produto, index) =>
+            {
+                var quantities = Model.Where(x => x.Produto.Nome == produto && x.TipoMovimentacao == true)
+                    .GroupBy(x => x.DataHora.Date.ToString("MM/yyyy"))
+                    .ToDictionary(g => g.Key, g => g.Sum(x => x.Quantidade));
+
+                var filledQuantities = dateGroups.Select(g => quantities.ContainsKey(g.Key) ? quantities[g.Key] : 0);
+
+                var randomColor = GetRandomColor(usedColors);
+                usedColors.Add(randomColor);
+
+                return new
+                {
+                    label = produto,
+                    data = filledQuantities,
+                    fill = false,
+                    borderColor = randomColor,
+                    borderWidth = 2
+                };
+            })
+        };
+
+        var saidas = new
+        {
+            labels = dateGroups.Select(g => g.Key),
+            datasets = Model.Select(x => x.Produto.Nome).Distinct().Select((produto, index) =>
+            {
+                var quantities = Model.Where(x => x.Produto.Nome == produto && x.TipoMovimentacao == false)
+                    .GroupBy(x => x.DataHora.Date.ToString("MM/yyyy"))
+                    .ToDictionary(g => g.Key, g => g.Sum(x => x.Quantidade));
+
+                var filledQuantities = dateGroups.Select(g => quantities.ContainsKey(g.Key) ? quantities[g.Key] : 0);
+
+                var randomColor = GetRandomColor(usedColors);
+                usedColors.Add(randomColor);
+
+                return new
+                {
+                    label = produto,
+                    data = filledQuantities,
+                    fill = false,
+                    borderColor = randomColor,
+                    borderWidth = 2
+                };
+            })
+        };
+    
+        var entradas_saidas = new
+        {
+            labels = dateGroups.Select(x => x.Key),
+            datasets = new[] {
+                new {
+                    label = "Entradas",
+                    data = dateGroups.Select(group => Model.Where(x => x.TipoMovimentacao == true && x.DataHora.Year == group.First().Year && x.DataHora.Month == group.First().Month).Sum(x => x.Quantidade)),
+                    fill = false,
+                    borderColor = "green",
+                    borderWidth = 2
+                },
+                new {
+                    label = "Saídas",
+                    data = dateGroups.Select(group => Model.Where(x => x.TipoMovimentacao == false && x.DataHora.Year == group.First().Year && x.DataHora.Month == group.First().Month).Sum(x => x.Quantidade)),
+                    fill = false,
+                    borderColor = "red",
+                    borderWidth = 2
+                }
+            }
+        };
+
+        // Gerador de cores para as linhas dos gráficos sem repetição de cores nas linas.
+        string GetRandomColor(List<string> usedColors)
+        {
+            var random = new Random();
+            while (true)
+            {
+                var color = $"rgb({random.Next(0, 255)}, {random.Next(0, 255)}, {random.Next(0, 255)})";
+                if (!usedColors.Contains(color))
+                {
+                    return color;
+                }
+            }
+        }
+    }
+    <script>
+
+        var grafico_entrada_saida = document.getElementById("grafico_entrada_saida").getContext("2d");
+        var chart3 = new Chart(grafico_entrada_saida, {
+            type: "line",
+            data: @Html.Raw(Json.Serialize(entradas_saidas))
+                                    });
+        var grafico_entrada = document.getElementById("grafico_entrada").getContext("2d");
+        var chart1 = new Chart(grafico_entrada, {
+            type: "bar",
+            data: @Html.Raw(Json.Serialize(entradas))
+                                    });
+
+        var grafico_saida = document.getElementById("grafico_saida").getContext("2d");
+        var chart2 = new Chart(grafico_saida, {
+            type: "bar",
+            data: @Html.Raw(Json.Serialize(saidas))
+                                    });
+
+    </script>
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

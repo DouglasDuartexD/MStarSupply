@@ -1,0 +1,229 @@
+﻿@model IPagedList<MStarSupply.Models.Movimentacoes>
+@using X.PagedList;
+@using X.PagedList.Mvc.Core;
+@using X.PagedList.Web.Common;
+@{
+    ViewData["Title"] = "Movimentações";
+}
+<div class="container mt-5 mb-5">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                @using (Html.BeginForm())
+                {
+                    <div class="mt-2 text-center">
+                        @Html.TextBox("busca_caixa_digitacao", null, new { @class = "form-control mr-2", placeholder = "Produto,local,Entrada ou saida" })
+                    </div>
+                    <div class="mt-2 text-center">
+                        <input type="submit" value="Buscar" class="btn btn-outline-primary mr-2" />
+                        <a type="submit" class="btn btn-outline-secondary" onclick="$('#busca_caixa_digitacao').val('')" href="@Url.Action("Index")">Limpar Busca</a>
+                    </div>
+                }
+                <a asp-action="Create" class="btn btn-outline-success"><strong>Adicionar Movimentação</strong></a>
+                <span>
+                    <a href="@Url.Action("GerarRelatorio", "Movimentacoes", new { data = ViewData["DataDoRelatorio"] })" class="btn btn-outline-dark">Gerar relatório em PDF</a>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="row mt-1">
+    @foreach (var item in Model)
+    {
+        <div class="col-md-4">
+            <div class="p-card bg-light p-2 rounded px-3">
+                <div class="d-flex align-items-center">
+                    <b class="text-black-85 mx-auto">
+                        @if (item.TipoMovimentacao)
+                        {
+                            @("Entrada de ")
+                            @Html.DisplayFor(modelItem => item.Produto.Tipo)
+                        }
+                        else
+                        {
+                            @("Saida de ")
+                            @Html.DisplayFor(modelItem => item.Produto.Tipo)
+                        }
+                    </b>
+                </div>
+                <span class="d-block text-black-50 mb-2"><b>@Html.DisplayNameFor(modelItem => item.Produto.Nome): </b> @Html.DisplayFor(modelItem => item.Produto.Nome)</span>
+                <span class="d-block text-black-50 mb-2"><b>@("Produto ativo"): </b> @(item.Produto.Ativo ? "Sim" : "Não")</span>
+                <span class="d-block text-black-50 mb-2"><b>@Html.DisplayNameFor(modelItem => item.Produto.Fabricante): </b> @Html.DisplayFor(modelItem => item.Produto.Fabricante)</span>
+                <span class="d-block text-black-50 mb-2"><b>@Html.DisplayNameFor(modelItem => item.Quantidade): </b> @Html.DisplayFor(modelItem => item.Quantidade)</span>
+                <span class="d-block text-black-50 mb-2"><b>@Html.DisplayNameFor(modelItem => item.Local):</b> @Html.DisplayFor(modelItem => item.Local)</span>
+                <span class="d-block text-black-50 mb-2">
+                    <b>
+                        @if (item.TipoMovimentacao)
+                        {
+                            @("Entrada dia ")
+                        }
+                        else
+                        {
+                            @("Saida dia ")
+                        }
+                    </b>@Html.DisplayFor(modelItem => item.DataHora)
+                </span>
+                <div class="d-flex justify-content-between stats">
+                    <button type="button" class="btn btn-outline-info editar-item" data-toggle="modal" data-id="@item.Id" data-target="#editarModal">
+                        Editar Movimentação
+                    </button>
+                    <div class="d-flex flex-row-reverse align-items-center">
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-outline-danger delete-item" data-id="@item.Id">
+                                Excluir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- vvv Modal Confirmar delete vvv -->
+        <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Tem certeza que deseja excluir o item?</p>
+                        <form id="deleteForm" method="post" action="@Url.Action("DeleteDoModal", item.Id)">
+                            <input type="hidden" name="id" id="deleteId" value="">
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" form="deleteForm" class="btn btn-outline-danger">Essa ação é <strong>irreversível</strong>, clique aqui para deletar.</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ^^^ Modal Confirmar delete ^^^-->
+        <!-- vvv Modal Editar Movimentacao vvv-->
+        <div class="modal fade" id="editarModal" tabindex="-1" role="dialog" aria-labelledby="editarModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                    </div>
+                    <div class="modal-body">
+                        <form asp-action="Edit">
+                            <input type="hidden" asp-for="@item.Id" />
+                            <div class="form-group">
+                                <label asp-for="@item.Produto_id" class="control-label"></label>
+                                <select asp-for="@item.Produto_id" class="form-control" asp-items="@(new SelectList(ViewBag.Produtos, "Id", "Nome", item.Produto_id))"></select>
+                                <span asp-validation-for="@item.Produto_id" class="text-danger"></span>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="@item.DataHora" class="control-label"></label>
+                                <input asp-for="@item.DataHora" class="form-control" />
+                                <span asp-validation-for="@item.DataHora" class="text-danger"></span>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="@item.Quantidade" class="control-label"></label>
+                                <input asp-for="@item.Quantidade" class="form-control" />
+                                <span asp-validation-for="@item.Quantidade" class="text-danger"></span>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="@item.TipoMovimentacao" class="control-label"></label>
+                                <select asp-for="@item.TipoMovimentacao" class="form-control">
+                                    <option value="true" selected=@(item.TipoMovimentacao == true ? "selected" : "")>Entrada</option>
+                                    <option value="false" selected=@(item.TipoMovimentacao == false ? "selected" : "")>Saída</option>
+                                </select>
+                                <span asp-validation-for="@item.TipoMovimentacao" class="text-danger"></span>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="@item.Local" class="control-label"></label>
+                                <input asp-for="@item.Local" class="form-control" />
+                                <span asp-validation-for="@item.Local" class="text-danger"></span>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-primary">Salvar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ^^^ Modal Editar Movimentacao ^^^-->
+    }
+</div>
+
+<div>
+    <br />
+    <div class="col text-black-50 text-center">
+        Página @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+    </div>
+    <div class="d-flex justify-content-center text-right mt-2">
+        <div>
+        </div>
+        <nav>
+            <ul class="pagination">
+                @Html.PagedListPager(
+                Model,
+                page => Url.Action("Index",
+                new
+                {
+                page,
+                sortOrder = ViewBag.CurrentSort,
+                filtro_atual = ViewBag.filtro_atual,
+                quantidade_de_dados_por_pagina = ViewBag.quantidade_de_dados_por_pagina
+                }
+                ),
+                new PagedListRenderOptions()
+                {
+                LiElementClasses = new List<string> {"btn btn-outline-light"}
+                })
+            </ul>
+        </nav>
+        <form action="@Url.Action("Index", "Movimentacoes")">
+            <input type="hidden" name="filtro_atual" value="@ViewBag.filtro_atual" />
+            <select class="form-control" name="quantidade_de_dados_por_pagina" onchange="this.form.submit();">
+                @foreach (var option in new List<SelectListItem>
+                {
+                new SelectListItem { Text = "6", Value = "6" },
+                new SelectListItem { Text = "12", Value = "12" },
+                new SelectListItem { Text = "24", Value = "24" },
+                new SelectListItem { Text = "48", Value = "48" },
+                new SelectListItem { Text = "96", Value = "96" },
+                })
+                {
+                    @if (ViewBag.quantidade_de_dados_por_pagina > 0 && option.Value == ViewBag.quantidade_de_dados_por_pagina.ToString())
+                    {
+                        <option value="@option.Value" selected>@option.Text</option>
+                    }
+                    else
+                    {
+                        <option value="@option.Value">@option.Text</option>
+                    }
+                }
+            </select>
+        </form>
+    </div>
+</div>
+@section Scripts{
+
+    <script>
+        $(function () {
+            $(".delete-item").click(function () {
+                var id = $(this).data("id");
+                $("#deleteId").val(id);
+                $("#deleteModal").modal("show");
+            });
+            $(".editar-item").click(function () {
+                var id = $(this).data("id");
+                $.ajax({
+                    url: "/Movimentacoes/Edit/" + id,
+                    type: "GET",
+                    success: function (result) {
+                        $("#editarModal .modal-body").html(result);
+                        $("#editarModal").modal("show");
+                    }
+                });
+            });
+        });
+    </script>
+
+}

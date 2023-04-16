@@ -1,0 +1,164 @@
+﻿@model IPagedList<MStarSupply.Models.Produto>
+@using X.PagedList;
+@using X.PagedList.Mvc.Core;
+@using X.PagedList.Web.Common;
+@{
+    ViewData["Title"] = "Produtos";
+}
+<div class="container mt-5 mb-5">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                @using (Html.BeginForm())
+                {
+                    <div class="mt-2 text-center">
+                        @Html.TextBox("busca_caixa_digitacao", null, new { @class = "form-control mr-2", placeholder = "Produto,local,Entrada ou saida" })
+                    </div>
+                    <div class="mt-2 text-center">
+                        <input type="submit" value="Buscar" class="btn btn-outline-primary mr-2" />
+                        <a type="submit" class="btn btn-outline-secondary" onclick="$('#busca_caixa_digitacao').val('')" href="@Url.Action("Index")">Limpar Busca</a>
+                    </div>
+                }
+                <a asp-action="Create" class="btn btn-outline-success"><strong>Adicionar Produto</strong></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="row mt-1">
+    @foreach (var item in Model)
+    {
+        <div class="col-md-4">
+            <div class="p-card bg-light p-2 rounded px-3">
+                <div class="d-flex align-items-center">
+                    <b class="text-black-85 ml-2">
+                        @Html.DisplayNameFor(modelItem => item.Nome): </b> @Html.DisplayFor(modelItem => item.Nome)
+                </div>
+                <span class="d-block text-black-50 mb-2"><b>@Html.DisplayNameFor(modelItem => item.Fabricante): </b> @Html.DisplayFor(modelItem => item.Fabricante)</span>
+                <span class="d-block text-black-50 mb-2"><b>@Html.DisplayNameFor(modelItem => item.Tipo): </b> @Html.DisplayFor(modelItem => item.Tipo)</span>
+                <span class="d-block text-black-50 mb-2"><b>@Html.DisplayNameFor(modelItem => item.Ativo):</b> @(item.Ativo ? "Sim" : "Não")</span>
+                <div class="d-flex justify-content-between stats">
+                    <button type="button" class="btn btn-outline-info editar-item" data-toggle="modal" data-id="@item.Id" data-target="#editarModal">
+                        Editar Produto
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- vvv Modal Editar Produto vvv-->
+        <div class="modal fade" id="editarModal" tabindex="-1" role="dialog" aria-labelledby="editarModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                    </div>
+                    <div class="modal-body">
+                        <form asp-action="Edit">
+                            <input type="hidden" asp-for="@item.Id" />
+                            <div class="form-group">
+                                <label asp-for="@item.Nome" class="control-label"></label>
+                                <select asp-for="@item.Nome" class="form-control"></select>
+                                <span asp-validation-for="@item.Nome" class="text-danger"></span>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="@item.Fabricante" class="control-label"></label>
+                                <input asp-for="@item.Fabricante" class="form-control" />
+                                <span asp-validation-for="@item.Fabricante" class="text-danger"></span>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="@item.Ativo" class="control-label"></label>
+                                <select asp-for="@item.Ativo" class="form-control">
+                                    <option value="true" selected=@(item.Ativo == true ? "selected" : "")>Sim</option>
+                                    <option value="false" selected=@(item.Ativo == false ? "selected" : "")>Não</option>
+                                </select>
+                                <span asp-validation-for="@item.Ativo" class="text-danger"></span>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-primary">Salvar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ^^^ Modal Editar Produto ^^^-->
+    }
+</div>
+
+<div>
+    <br />
+    <div class="col text-black-50 text-center">
+        Página @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+    </div>
+    <div class="d-flex justify-content-center text-right mt-2">
+        <div>
+        </div>
+        <nav>
+            <ul class="pagination">
+                @Html.PagedListPager(
+                Model,
+                page => Url.Action("Index",
+                new
+                {
+                page,
+                sortOrder = ViewBag.CurrentSort,
+                filtro_atual = ViewBag.filtro_atual,
+                quantidade_de_dados_por_pagina = ViewBag.quantidade_de_dados_por_pagina
+                }
+                ),
+                new PagedListRenderOptions()
+                {
+                LiElementClasses = new List<string> {"btn btn-outline-light"}
+                })
+            </ul>
+        </nav>
+        <form action="@Url.Action("Index", "Produtos")">
+            <input type="hidden" name="filtro_atual" value="@ViewBag.filtro_atual" />
+            <select class="form-control" name="quantidade_de_dados_por_pagina" onchange="this.form.submit();">
+                @foreach (var option in new List<SelectListItem>
+                {
+                new SelectListItem { Text = "6", Value = "6" },
+                new SelectListItem { Text = "12", Value = "12" },
+                new SelectListItem { Text = "24", Value = "24" },
+                new SelectListItem { Text = "48", Value = "48" },
+                new SelectListItem { Text = "96", Value = "96" },
+                })
+                {
+                    @if (ViewBag.quantidade_de_dados_por_pagina > 0 && option.Value == ViewBag.quantidade_de_dados_por_pagina.ToString())
+                    {
+                        <option value="@option.Value" selected>@option.Text</option>
+                    }
+                    else
+                    {
+                        <option value="@option.Value">@option.Text</option>
+                    }
+                }
+            </select>
+        </form>
+    </div>
+
+</div>
+@section Scripts{
+
+    <script>
+        $(function () {
+            $(".delete-item").click(function () {
+                var id = $(this).data("id");
+                $("#deleteId").val(id);
+                $("#deleteModal").modal("show");
+            });
+            $(".editar-item").click(function () {
+                var id = $(this).data("id");
+                $.ajax({
+                    url: "/produtos/Edit/" + id,
+                    type: "GET",
+                    success: function (result) {
+                        $("#editarModal .modal-body").html(result);
+                        $("#editarModal").modal("show");
+                    }
+                });
+            });
+        });
+    </script>
+
+}
