@@ -1,21 +1,27 @@
 ﻿@model MStarSupply.Models.Produto
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Novo Produto";
 }
 
-<h1>Create</h1>
-
-<h4>Produto</h4>
+<div class="text-center">
+    <h2>Adicionar Produto</h2>
+    <h2>@Html.DisplayFor(modelItem => Model.Nome)</h2>
+</div>
 <hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <form asp-action="Create" method="post" id="adicionarForm">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="form-group">
-                <label asp-for="Nome" class="control-label"></label>
-                <input asp-for="Nome" class="form-control" />
+                <label class="control-label">Nome</label>
+                <input asp-for="Nome" class="form-control">
                 <span asp-validation-for="Nome" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Tipo" class="control-label"></label>
+                <input asp-for="Tipo" class="form-control" />
+                <span asp-validation-for="Tipo" class="text-danger"></span>
             </div>
             <div class="form-group">
                 <label asp-for="Fabricante" class="control-label"></label>
@@ -23,26 +29,47 @@
                 <span asp-validation-for="Fabricante" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="Tipo" class="control-label"></label>
-                <input asp-for="Tipo" class="form-control" />
-                <span asp-validation-for="Tipo" class="text-danger"></span>
+                <label asp-for="Ativo" class="control-label"></label>
+                <select asp-for="Ativo" class="form-control">
+                    <option value="true">Sim</option>
+                    <option value="false">Não</option>
+                </select>
+                <span asp-validation-for="Ativo" class="text-danger"></span>
             </div>
-            <div class="form-group form-check">
-                <label class="form-check-label">
-                    <input class="form-check-input" asp-for="Ativo" /> @Html.DisplayNameFor(model => model.Ativo)
-                </label>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary mr-auto adicionar-item">Salvar</button>
+                <a asp-action="Index" class="btn btn-secondary m-lg-auto">Cancelar</a>
             </div>
         </form>
     </div>
 </div>
-
-<div>
-    <a asp-action="Index">Back to List</a>
+<div class="modal fade" id="adicionarModal" tabindex="-1" role="dialog" aria-labelledby="adicionarModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja criar um novo produto?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger" id="confirm-adicionar">Produtos não são <strong>deletáveis</strong> para prosseguir clique aqui.</button>
+            </div>
+        </div>
+    </div>
 </div>
+@section Scripts{
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(function () {
+            $(".adicionar-item").click(function () {
+                $("#adicionarModal").modal("show");
+            });
 
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+            $("#confirm-adicionar").click(function () {
+                $("#adicionarForm").submit();
+            });
+        });
+    </script>
 }

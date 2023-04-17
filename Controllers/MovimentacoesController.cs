@@ -38,16 +38,17 @@ namespace MStarSupply.Controllers
         public async Task<IActionResult> Index(int? page, string filtro_atual, string busca_caixa_digitacao, int quantidade_de_dados_por_pagina)
         {
             //referencia o contexto de movimentacoes para obter os dados que devem ser tratados.
-            var movimentacoes = GetMovimentacoes();
+            var todas_movimentacoes = GetMovimentacoes();
             //cria uma nova lista de dados baseado no modelo de dados Movimentacoes para gerar o resultado dos dados para retorno.
-            var dados = new List<Movimentacoes>();
+            var dados_filtrados = new List<Movimentacoes>();
             //Define a pagina atual do grid
             int grid_pagina_atual = (page ?? 1);
 
             //verifica se a caixa de busca está vazia para determinar se mantem o dado da caixa ou exibe os dados por default(estado inicial)
+            //caso o valor da caixa seja digitado, pela primeira vez ele irá definir a pagina do grid para a página 1
             if (!String.IsNullOrEmpty(busca_caixa_digitacao))
             {
-                page = 1;
+                grid_pagina_atual = 1;
                 if (filtro_atual == null)
                 {
                     filtro_atual = busca_caixa_digitacao;
@@ -62,7 +63,7 @@ namespace MStarSupply.Controllers
             }
 
             //alimenta o objeto dados com os resultados de busca
-            foreach (var movimentacao in movimentacoes)
+            foreach (var movimentacao in todas_movimentacoes)
             {
                 //Inicia a verificação dos dados da caixa de busca, se os dados da caixa de busca corresponderem
                 //A algum dado dos campos disponíveis em visualização, ainda não foi implementado a busca por datas.
@@ -70,7 +71,7 @@ namespace MStarSupply.Controllers
                 {
                     if (!movimentacao.TipoMovimentacao)
                     {
-                        dados.Add(movimentacao);
+                        dados_filtrados.Add(movimentacao);
                     }
 
                 }
@@ -78,39 +79,73 @@ namespace MStarSupply.Controllers
                 {
                     if (movimentacao.TipoMovimentacao)
                     {
-                        dados.Add(movimentacao);
+                        dados_filtrados.Add(movimentacao);
+                    }
+                }
+                else if (filtro_atual != null && filtro_atual.Equals("ativo", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (movimentacao.Produto.Ativo)
+                    {
+                        dados_filtrados.Add(movimentacao);
+                    }
+                }
+                else if (filtro_atual != null && filtro_atual.Equals("inativo", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!movimentacao.Produto.Ativo)
+                    {
+                        dados_filtrados.Add(movimentacao);
                     }
                 }
                 else if (filtro_atual != null && (
                     movimentacao.Local.Contains(filtro_atual, StringComparison.OrdinalIgnoreCase) || 
-                    movimentacao.Produto.Nome.Contains(filtro_atual, StringComparison.OrdinalIgnoreCase)))
+                    movimentacao.Produto.Nome.Contains(filtro_atual, StringComparison.OrdinalIgnoreCase) ||
+                    movimentacao.Produto.Fabricante.Contains(filtro_atual, StringComparison.OrdinalIgnoreCase) ||
+                    movimentacao.Produto.Tipo.Contains(filtro_atual, StringComparison.OrdinalIgnoreCase)
+                    ))
                 {
-                        dados.Add(movimentacao);
+                        dados_filtrados.Add(movimentacao);
                 }
             }
+
+            //define os valores para a View, caso a quantidade dados seja menor do que o minimo necessário
+            //será definido para o grid os valores minimos de exibição e paginação
+
+            //define a quantidade minina de dados por paginação do grid
+            if (quantidade_de_dados_por_pagina < 6)
+            {
+                quantidade_de_dados_por_pagina = 6;
+            }
+            
+            
             //ViewBag para retornar a lista de produtos disponíveis
             ViewBag.Produtos = _context.Produto.ToList();
             //ViewBags par manter as personalizações dos filtros, paginação, quantidade de itens por página e etc
             ViewBag.quantidade_de_dados_por_pagina = quantidade_de_dados_por_pagina;
-            ViewBag.Page = page;
+            ViewBag.Page = grid_pagina_atual;
             ViewBag.filtro_atual = filtro_atual;
             
             //define os valores para a View, caso a quantidade de páginas seja menor do que o minimo
             //será definido que o grid deve o valor minimo permitido de dados permitido para o filtro
-
-            if (quantidade_de_dados_por_pagina < 6) 
+            
+            if (dados_filtrados.Count > 0)
             {
-                quantidade_de_dados_por_pagina = 6;
-            }
-            if (dados.Count > 0)
-            {
+                //define a pagina atual do grid baseado na quantidade de dados e a quantidade de dados por página
+                if ((dados_filtrados.Count / quantidade_de_dados_por_pagina) < 1)
+                {
+                    grid_pagina_atual = 1;
+                }
                 //Retorna os dados filtrados caso exista dados definido pelos filtros
-                return View(dados.ToPagedList(grid_pagina_atual, quantidade_de_dados_por_pagina));
+                return View(dados_filtrados.ToPagedList(grid_pagina_atual, quantidade_de_dados_por_pagina));
             }
             else
             {
+                //define a pagina atual do grid baseado na quantidade de dados e a quantidade de dados por página
+                if ((todas_movimentacoes.Count / quantidade_de_dados_por_pagina) < 1)
+                {
+                    grid_pagina_atual = 1;
+                }
                 //Retorna o valor com todas as movimentações
-                return View(movimentacoes.ToPagedList(grid_pagina_atual, quantidade_de_dados_por_pagina));
+                return View(todas_movimentacoes.ToPagedList(grid_pagina_atual, quantidade_de_dados_por_pagina));
             }
             
         }
@@ -255,13 +290,12 @@ namespace MStarSupply.Controllers
 
             foreach (var grupo in gruposEntrada)
             {
-                var agrupamento = grupo.GroupBy(mov => new { Ano = mov.DataHora.Year, Mes = mov.DataHora.Month });
                 var produto = grupo.First().Produto?.Nome ?? "Não especificado";
 
-                var table = new Table(new float[] { 1, 1, 1 });
+                var table = new Table(new float[] { 1, 1 });
                 var total = grupo.Sum(mov => mov.Quantidade); // Soma das quantidades das movimentações do grupo
-                var headerCell = new Cell(1, 4)
-                    .Add(new Paragraph($"Produto: {produto} - Total: {total}"))
+                var headerCell = new Cell(1, 2)
+                    .Add(new Paragraph($"{produto} \n Total: {total}"))
                     .SetFontColor(ColorConstants.WHITE)
                     .SetBackgroundColor(ColorConstants.DARK_GRAY)
                     .SetTextAlignment(TextAlignment.CENTER);
@@ -270,19 +304,24 @@ namespace MStarSupply.Controllers
                 var headerFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
                 table.AddHeaderCell("Mês/Ano").SetFont(headerFont);
                 table.AddHeaderCell("Quantidade").SetFont(headerFont);
-                table.AddHeaderCell("Local").SetFont(headerFont);
 
-                foreach (var mov in grupo)
+                var agrupamento = grupo.GroupBy(mov => new { Ano = mov.DataHora.Year, Mes = mov.DataHora.Month }); // Agrupa os dados por mês e ano
+
+                foreach (var grupoMesAno in agrupamento)
                 {
-                    var mesAno = mov.DataHora.ToString("MM/yyyy"); // Obter o mês e ano formatados como "MM/yyyy"
+                    var mesAno = $"{grupoMesAno.Key.Mes:00}/{grupoMesAno.Key.Ano}";
+                    var quantidadeTotal = grupoMesAno.Sum(mov => mov.Quantidade);
+
                     table.AddCell(mesAno).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
-                    table.AddCell(mov.Quantidade.ToString()).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
-                    table.AddCell(mov.Local).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
+                    table.AddCell(quantidadeTotal.ToString()).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
                 }
 
+                table.SetWidth(UnitValue.CreatePercentValue(100)); // Define a largura da tabela como 100% do tamanho da página
+                table.SetTextAlignment(TextAlignment.CENTER); // Define o alinhamento horizontal centralizado para todas as células da tabela
                 document.Add(table);
                 document.Add(new Paragraph("\n"));
             }
+
 
             document.Add(new AreaBreak(AreaBreakType.NEXT_PAGE));
 
@@ -295,32 +334,37 @@ namespace MStarSupply.Controllers
             {
                 var produto = grupo.First().Produto?.Nome ?? "Não especificado";
                 var total = grupo.Sum(mov => mov.Quantidade); // Soma das quantidades das movimentações do grupo
-                var table = new Table(new float[] { 1, 1, 1 });
                 var agrupamento = grupo.GroupBy(mov => new { Ano = mov.DataHora.Year, Mes = mov.DataHora.Month }); // Agrupa os dados por mês e ano
-                var headerCell = new Cell(1, 4)
-                    .Add(new Paragraph($"Produto: {produto} - Total: {total}"))
-                    .SetFontColor(ColorConstants.WHITE)
-                    .SetBackgroundColor(ColorConstants.DARK_GRAY)
-                    .SetTextAlignment(TextAlignment.CENTER);
-                table.AddHeaderCell(headerCell);
-
-                var headerFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
-                table.AddHeaderCell("Mês/Ano").SetFont(headerFont);
-                table.AddHeaderCell("Quantidade").SetFont(headerFont);
-                table.AddHeaderCell("Local").SetFont(headerFont);
-
-                foreach (var mov in grupo)
+                foreach (var mesAnoGrupo in agrupamento)
                 {
-                    var mesAno = mov.DataHora.ToString("MM/yyyy"); // Obter o mês e ano formatados como "MM/yyyy"
-                    table.AddCell(mesAno).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
-                    table.AddCell(mov.Quantidade.ToString()).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
-                    table.AddCell(mov.Local).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
+                    var mesAno = $"{mesAnoGrupo.Key.Mes.ToString("00")}/{mesAnoGrupo.Key.Ano}"; // Obter o mês e ano formatados como "MM/yyyy"
+                    var table = new Table(new float[] { 1, 1 });
+                    var headerCell = new Cell(1, 2)
+                        .Add(new Paragraph($"{produto} - Total: {mesAnoGrupo.Sum(mov => mov.Quantidade)}"))
+                        .SetFontColor(ColorConstants.WHITE)
+                        .SetBackgroundColor(ColorConstants.DARK_GRAY)
+                        .SetTextAlignment(TextAlignment.CENTER);
+                    table.AddHeaderCell(headerCell);
+
+                    var headerFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
+                    table.AddHeaderCell("Mês/Ano").SetFont(headerFont);
+                    table.AddHeaderCell("Quantidade").SetFont(headerFont);
+
+                    foreach (var mov in mesAnoGrupo)
+                    {
+                        table.AddCell(mov.DataHora.ToString("dd/MM/yyyy")).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
+                        table.AddCell(mov.Quantidade.ToString()).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
+                    }
+
+                    table.SetWidth(UnitValue.CreatePercentValue(100)); // Define a largura da tabela como 100% do tamanho da página
+                    table.SetTextAlignment(TextAlignment.CENTER); // Define o alinhamento horizontal centralizado para todas as células da tabela
+
+                    document.Add(table);
+                    document.Add(new Paragraph("\n"));
+
                 }
-
-                document.Add(table);
-                document.Add(new Paragraph("\n"));
-
             }
+
 
             document.Close();
 

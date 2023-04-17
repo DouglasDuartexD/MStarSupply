@@ -8,25 +8,31 @@
 <div class="container mt-5 mb-5">
     <div class="row">
         <div class="col-md-12">
-            <div class="d-flex justify-content-between align-items-center">
-                @using (Html.BeginForm())
-                {
-                    <div class="mt-2 text-center">
-                        @Html.TextBox("busca_caixa_digitacao", null, new { @class = "form-control mr-2", placeholder = "Produto,local,Entrada ou saida" })
+            @using (Html.BeginForm())
+            {
+                <div class="row justify-content-center mb-3">
+                    <div class="col-md-12 col-lg-4 text-center mb-3">
+                        <a asp-action="Create" class="btn btn-outline-success btn-block"><strong>Adicionar Movimentação</strong></a>
                     </div>
-                    <div class="mt-2 text-center">
-                        <input type="submit" value="Buscar" class="btn btn-outline-primary mr-2" />
-                        <a type="submit" class="btn btn-outline-secondary" onclick="$('#busca_caixa_digitacao').val('')" href="@Url.Action("Index")">Limpar Busca</a>
+                </div>
+                <div class="d-flex justify-content-center align-items-center flex-wrap mb-3">
+                    <div class="input-group">
+                        @Html.TextBox("busca_caixa_digitacao", null, new { @class = "form-control mr-2", placeholder = "Busque por produto, local, tipo, entrada, saida, ativo ou inativo" })
+                        <div class="input-group-append">
+                            <input type="submit" value="Buscar" class="btn btn-outline-primary mr-2" />
+                            <a type="submit" class="btn btn-outline-secondary" onclick="$('#busca_caixa_digitacao').val('')" href="@Url.Action("Index")">Limpar Busca</a>
+                        </div>
                     </div>
-                }
-                <a asp-action="Create" class="btn btn-outline-success"><strong>Adicionar Movimentação</strong></a>
-                <span>
+                </div>
+                <div class="d-flex justify-content-center align-items-center flex-wrap mb-3">
                     <a href="@Url.Action("GerarRelatorio", "Movimentacoes", new { data = ViewData["DataDoRelatorio"] })" class="btn btn-outline-dark">Gerar relatório em PDF</a>
-                </span>
-            </div>
+                </div>
+            }
         </div>
     </div>
 </div>
+
+
 
 
 <div class="row mt-1">
