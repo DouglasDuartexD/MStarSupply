@@ -352,7 +352,7 @@ namespace MStarSupply.Controllers
 
                     foreach (var mov in mesAnoGrupo)
                     {
-                        table.AddCell(mov.DataHora.ToString("dd/MM/yyyy")).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
+                        table.AddCell(mov.DataHora.ToString("MM/yyyy")).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
                         table.AddCell(mov.Quantidade.ToString()).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
                     }
 
