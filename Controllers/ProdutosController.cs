@@ -109,7 +109,7 @@ namespace MStarSupply.Controllers
             else
             {
                 //define a pagina atual do grid baseado na quantidade de dados e a quantidade de dados por página
-                if ((dados_filtrados.Count / quantidade_de_dados_por_pagina) < 1)
+                if ((todos_produtos.Count / quantidade_de_dados_por_pagina) < 1)
                 {
                     grid_pagina_atual = 1;
                 }

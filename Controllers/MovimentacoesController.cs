@@ -290,13 +290,12 @@ namespace MStarSupply.Controllers
 
             foreach (var grupo in gruposEntrada)
             {
-                var agrupamento = grupo.GroupBy(mov => new { Ano = mov.DataHora.Year, Mes = mov.DataHora.Month });
                 var produto = grupo.First().Produto?.Nome ?? "Não especificado";
 
-                var table = new Table(new float[] { 1, 1, 1 });
+                var table = new Table(new float[] { 1, 1 });
                 var total = grupo.Sum(mov => mov.Quantidade); // Soma das quantidades das movimentações do grupo
-                var headerCell = new Cell(1, 4)
-                    .Add(new Paragraph($"Produto: {produto} - Total: {total}"))
+                var headerCell = new Cell(1, 2)
+                    .Add(new Paragraph($"{produto} \n Total: {total}"))
                     .SetFontColor(ColorConstants.WHITE)
                     .SetBackgroundColor(ColorConstants.DARK_GRAY)
                     .SetTextAlignment(TextAlignment.CENTER);
@@ -305,19 +304,24 @@ namespace MStarSupply.Controllers
                 var headerFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
                 table.AddHeaderCell("Mês/Ano").SetFont(headerFont);
                 table.AddHeaderCell("Quantidade").SetFont(headerFont);
-                table.AddHeaderCell("Local").SetFont(headerFont);
 
-                foreach (var mov in grupo)
+                var agrupamento = grupo.GroupBy(mov => new { Ano = mov.DataHora.Year, Mes = mov.DataHora.Month }); // Agrupa os dados por mês e ano
+
+                foreach (var grupoMesAno in agrupamento)
                 {
-                    var mesAno = mov.DataHora.ToString("MM/yyyy"); // Obter o mês e ano formatados como "MM/yyyy"
+                    var mesAno = $"{grupoMesAno.Key.Mes:00}/{grupoMesAno.Key.Ano}";
+                    var quantidadeTotal = grupoMesAno.Sum(mov => mov.Quantidade);
+
                     table.AddCell(mesAno).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
-                    table.AddCell(mov.Quantidade.ToString()).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
-                    table.AddCell(mov.Local).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
+                    table.AddCell(quantidadeTotal.ToString()).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
                 }
 
+                table.SetWidth(UnitValue.CreatePercentValue(100)); // Define a largura da tabela como 100% do tamanho da página
+                table.SetTextAlignment(TextAlignment.CENTER); // Define o alinhamento horizontal centralizado para todas as células da tabela
                 document.Add(table);
                 document.Add(new Paragraph("\n"));
             }
+
 
             document.Add(new AreaBreak(AreaBreakType.NEXT_PAGE));
 
@@ -330,32 +334,37 @@ namespace MStarSupply.Controllers
             {
                 var produto = grupo.First().Produto?.Nome ?? "Não especificado";
                 var total = grupo.Sum(mov => mov.Quantidade); // Soma das quantidades das movimentações do grupo
-                var table = new Table(new float[] { 1, 1, 1 });
                 var agrupamento = grupo.GroupBy(mov => new { Ano = mov.DataHora.Year, Mes = mov.DataHora.Month }); // Agrupa os dados por mês e ano
-                var headerCell = new Cell(1, 4)
-                    .Add(new Paragraph($"Produto: {produto} - Total: {total}"))
-                    .SetFontColor(ColorConstants.WHITE)
-                    .SetBackgroundColor(ColorConstants.DARK_GRAY)
-                    .SetTextAlignment(TextAlignment.CENTER);
-                table.AddHeaderCell(headerCell);
-
-                var headerFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
-                table.AddHeaderCell("Mês/Ano").SetFont(headerFont);
-                table.AddHeaderCell("Quantidade").SetFont(headerFont);
-                table.AddHeaderCell("Local").SetFont(headerFont);
-
-                foreach (var mov in grupo)
+                foreach (var mesAnoGrupo in agrupamento)
                 {
-                    var mesAno = mov.DataHora.ToString("MM/yyyy"); // Obter o mês e ano formatados como "MM/yyyy"
-                    table.AddCell(mesAno).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
-                    table.AddCell(mov.Quantidade.ToString()).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
-                    table.AddCell(mov.Local).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
+                    var mesAno = $"{mesAnoGrupo.Key.Mes.ToString("00")}/{mesAnoGrupo.Key.Ano}"; // Obter o mês e ano formatados como "MM/yyyy"
+                    var table = new Table(new float[] { 1, 1 });
+                    var headerCell = new Cell(1, 2)
+                        .Add(new Paragraph($"{produto} - Total: {mesAnoGrupo.Sum(mov => mov.Quantidade)}"))
+                        .SetFontColor(ColorConstants.WHITE)
+                        .SetBackgroundColor(ColorConstants.DARK_GRAY)
+                        .SetTextAlignment(TextAlignment.CENTER);
+                    table.AddHeaderCell(headerCell);
+
+                    var headerFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
+                    table.AddHeaderCell("Mês/Ano").SetFont(headerFont);
+                    table.AddHeaderCell("Quantidade").SetFont(headerFont);
+
+                    foreach (var mov in mesAnoGrupo)
+                    {
+                        table.AddCell(mov.DataHora.ToString("dd/MM/yyyy")).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
+                        table.AddCell(mov.Quantidade.ToString()).SetTextAlignment(TextAlignment.CENTER).SetBorder(Border.NO_BORDER);
+                    }
+
+                    table.SetWidth(UnitValue.CreatePercentValue(100)); // Define a largura da tabela como 100% do tamanho da página
+                    table.SetTextAlignment(TextAlignment.CENTER); // Define o alinhamento horizontal centralizado para todas as células da tabela
+
+                    document.Add(table);
+                    document.Add(new Paragraph("\n"));
+
                 }
-
-                document.Add(table);
-                document.Add(new Paragraph("\n"));
-
             }
+
 
             document.Close();
 
