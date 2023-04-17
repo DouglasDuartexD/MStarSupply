@@ -17,7 +17,7 @@
                 </div>
                 <div class="d-flex justify-content-center align-items-center flex-wrap mb-3">
                     <div class="input-group">
-                        @Html.TextBox("busca_caixa_digitacao", null, new { @class = "form-control mr-2", placeholder = "Busque por produto, local, entrada ou saida" })
+                        @Html.TextBox("busca_caixa_digitacao", null, new { @class = "form-control mr-2", placeholder = "Busque por produto, local, tipo, entrada, saida, ativo ou inativo" })
                         <div class="input-group-append">
                             <input type="submit" value="Buscar" class="btn btn-outline-primary mr-2" />
                             <a type="submit" class="btn btn-outline-secondary" onclick="$('#busca_caixa_digitacao').val('')" href="@Url.Action("Index")">Limpar Busca</a>

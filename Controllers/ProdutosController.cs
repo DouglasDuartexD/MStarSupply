@@ -30,10 +30,10 @@ namespace MStarSupply.Controllers
         public async Task<IActionResult> Index(int? page, string filtro_atual, string busca_caixa_digitacao, int quantidade_de_dados_por_pagina)
         {
 
-            //referencia o contexto de movimentacoes e obter os dados que devem ser tratados.
-            var produtos = GetProdutos();
+            //referencia o contexto de produtos e obter os dados que devem ser tratados.
+            var todos_produtos = GetProdutos();
             //cria uma nova lista de dados baseado no modelo de dados Produto para gerar o resultado dos dados para retorno.
-            var dados = new List<Produto>();
+            var dados_filtrados = new List<Produto>();
             //Define a pagina atual do grid
             int grid_pagina_atual = (page ?? 1);
             //verifica se a caixa de busca está vazia para determinar se mantem o dado da caixa ou exibe os dados por default(estado inicial)
@@ -55,23 +55,23 @@ namespace MStarSupply.Controllers
             }
 
             //alimenta o objeto dados com os resultados de busca
-            foreach (var produto in produtos)
+            foreach (var produto in todos_produtos)
             {
                 //Inicia a verificação dos dados da caixa de busca, se os dados da caixa de busca corresponderem
                 //A algum dado dos campos disponíveis em visualização, ainda não foi implementado a busca por datas.
-                if (filtro_atual != null && filtro_atual.IndexOf("ativo", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    if (!produto.Ativo)
-                    {
-                        dados.Add(produto);
-                    }
-
-                }
-                else if (filtro_atual != null && filtro_atual.IndexOf("inativo", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (filtro_atual != null && filtro_atual.Equals("ativo", StringComparison.OrdinalIgnoreCase))
                 {
                     if (produto.Ativo)
                     {
-                        dados.Add(produto);
+                        dados_filtrados.Add(produto);
+                    }
+
+                }
+                else if (filtro_atual != null && filtro_atual.Equals("inativo", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!produto.Ativo)
+                    {
+                        dados_filtrados.Add(produto);
                     }
                 }
                 else if (filtro_atual != null && (produto.Nome.Contains(filtro_atual, StringComparison.OrdinalIgnoreCase) ||
@@ -79,7 +79,7 @@ namespace MStarSupply.Controllers
                      produto.Tipo.Contains(filtro_atual, StringComparison.OrdinalIgnoreCase))
                    )
                 {
-                    dados.Add(produto);
+                    dados_filtrados.Add(produto);
                 }
             }
             //ViewBags manter as personalizações dos filtros, paginação, quantidade de itens por página e etc
@@ -87,22 +87,34 @@ namespace MStarSupply.Controllers
             ViewBag.Page = page;
             ViewBag.filtro_atual = filtro_atual;
 
-            //define os valores para a View, caso a quantidade de páginas seja menor do que o minimo
-            //será definido que o grid deve o valor minimo permitido de dados permitido para o filtro
+            //define os valores para a View, caso a quantidade dados seja menor do que o minimo necessário
+            //será definido para o grid os valores minimos de exibição e paginação
 
+            //define a quantidade minina de dados por paginação do grid
             if (quantidade_de_dados_por_pagina < 6)
             {
                 quantidade_de_dados_por_pagina = 6;
             }
-            if (dados.Count > 0)
+            
+            if (dados_filtrados.Count > 0)
             {
+                //define a pagina atual do grid baseado na quantidade de dados e a quantidade de dados por página
+                if ((dados_filtrados.Count / quantidade_de_dados_por_pagina) < 1)
+                {
+                    grid_pagina_atual = 1;
+                }
                 //Retorna os dados filtrados caso exista dados definido pelos filtros
-                return View(dados.ToPagedList(grid_pagina_atual, quantidade_de_dados_por_pagina));
+                return View(dados_filtrados.ToPagedList(grid_pagina_atual, quantidade_de_dados_por_pagina));
             }
             else
             {
+                //define a pagina atual do grid baseado na quantidade de dados e a quantidade de dados por página
+                if ((dados_filtrados.Count / quantidade_de_dados_por_pagina) < 1)
+                {
+                    grid_pagina_atual = 1;
+                }
                 //Retorna o valor com todas as movimentações
-                return View(produtos.ToPagedList(grid_pagina_atual, quantidade_de_dados_por_pagina));
+                return View(todos_produtos.ToPagedList(grid_pagina_atual, quantidade_de_dados_por_pagina));
             }
         }
 
