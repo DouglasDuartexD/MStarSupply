@@ -224,7 +224,7 @@ namespace MStarSupply.Controllers
                     // Adiciona a movimentação ao contexto e salva as mudanças
                     _context.Add(movimentacoes);
                     await _context.SaveChangesAsync();
-                    return View(movimentacoes);
+                    return RedirectToAction(nameof(Index));
                 }
             }
             return View(movimentacoes);
