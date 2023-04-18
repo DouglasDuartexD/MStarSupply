@@ -172,7 +172,7 @@ namespace MStarSupply.Controllers
         // GET: Movimentacoes/Create
         public IActionResult Create()
         {
-            ViewBag.Produtos = _context.Produto.ToList();
+            ViewBag.Produtos = _context.Produto.Where(x => x.Ativo == true).ToList();
             return View();
         }
 
@@ -181,6 +181,7 @@ namespace MStarSupply.Controllers
         public async Task<IActionResult> Create([Bind("Id,Produto_id,DataHora,Quantidade, TipoMovimentacao, Local")] Movimentacoes movimentacoes)
         {
             var produto = await _context.Produto.FindAsync(movimentacoes.Produto_id);
+            ViewBag.Produtos = _context.Produto.Where(x => x.Ativo == true).ToList();
             movimentacoes.Produto = produto;
             if (produto == null)
             {
@@ -189,14 +190,46 @@ namespace MStarSupply.Controllers
             }
             if (ModelState.IsValid)
             {
-                _context.Add(movimentacoes);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
+                if (movimentacoes.TipoMovimentacao == false)
+                {
+                    // Recupera o produto ativo pelo Id da movimentação, para confirmação se reamente o produto está ativo
+                    var produtoAtivo = await _context.Produto.Where(p => p.Id == movimentacoes.Produto_id && p.Ativo == true).FirstOrDefaultAsync();
 
-            ViewBag.Produtos = _context.Produto.ToList();
+                    // Recupera a quantidade total do produto ativo
+                    var quantidadeTotalProduto = await _context.Movimentacoes.Where(x => x.TipoMovimentacao == true && x.Produto_id == movimentacoes.Produto_id).SumAsync(x => x.Quantidade);
+
+                    // Recupera a quantidade de produto inativo
+                    var quantidadeInativo = await _context.Movimentacoes.Where(x => x.TipoMovimentacao == false && x.Produto_id == movimentacoes.Produto_id).SumAsync(x => x.Quantidade);
+
+                    // Calcula a quantidade disponível para movimentação
+                    var quantidadeDisponivel = quantidadeTotalProduto - quantidadeInativo;
+
+                    // Verifica se a quantidade disponível é suficiente para a movimentação
+                    if (quantidadeDisponivel >= movimentacoes.Quantidade)
+                    {
+                        // Adiciona a movimentação ao contexto e salva as mudanças
+                        _context.Add(movimentacoes);
+                        await _context.SaveChangesAsync();
+                        return RedirectToAction(nameof(Index));
+                    }
+                    else
+                    {
+                        // Caso a quantidade disponível não seja suficiente, retorna uma mensagem de erro
+                        ModelState.AddModelError(string.Empty, "A quantidade disponível do produto não é suficiente para a movimentação, o produto possui só "+quantidadeDisponivel+" em estoque.");
+                        return View(movimentacoes);
+                    }
+                }
+                else
+                {
+                    // Adiciona a movimentação ao contexto e salva as mudanças
+                    _context.Add(movimentacoes);
+                    await _context.SaveChangesAsync();
+                    return View(movimentacoes);
+                }
+            }
             return View(movimentacoes);
         }
+
 
         // GET: Movimentacoes/Edit/5
         public async Task<IActionResult> Edit(int? id)
